@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KSSR 六年级历史 单元二：我国的州属 - 篮球投篮知识大挑战</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+
+        body {
+            font-family: 'Noto Sans SC', 'Fredoka', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        /* 游戏画布样式 */
+        #gameCanvas {
+            background: linear-gradient(to bottom, #1e293b 0%, #0f172a 100%);
+            touch-action: none;
+        }
+
+        /* 自定义玻璃拟态效果 */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* 脉冲与动画效果 */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+            50% { box-shadow: 0 0 30px rgba(245, 158, 11, 0.8); }
+        }
+
+        .glow-active {
+            animation: pulse-glow 2s infinite;
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #60a5fa;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between overflow-hidden">
+
+    <!-- 顶部状态栏 -->
+    <header class="w-full bg-slate-900/90 border-b border-slate-700/60 px-4 py-2 flex items-center justify-between z-20 shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="bg-amber-500 text-slate-950 font-black px-3 py-1 rounded-lg text-lg flex items-center gap-2 shadow-lg">
+                <i class="fa-solid fa-basketball animate-spin" style="animation-duration: 8s;"></i>
+                <span>马来西亚州属知识投篮赛</span>
+            </div>
+            <span class="text-xs bg-blue-950 border border-blue-500/40 text-blue-300 px-2 py-1 rounded">KSSR 六年级 单元二</span>
+        </div>
+
+        <div class="flex items-center space-x-4 md:space-x-8 text-sm md:text-base">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-layer-group text-sky-400"></i>
+                <span class="text-slate-400">关卡:</span>
+                <span id="progressText" class="font-bold text-amber-400 text-lg">1 / 40</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-trophy text-yellow-400"></i>
+                <span class="text-slate-400">得分:</span>
+                <span id="scoreText" class="font-extrabold text-emerald-400 text-xl">0</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-fire text-orange-500"></i>
+                <span class="text-slate-400">连胜:</span>
+                <span id="streakText" class="font-bold text-orange-400 text-lg">0</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主体区域：左侧知识问答 / 右侧投篮游戏 -->
+    <main class="flex-1 relative flex flex-col lg:flex-row overflow-hidden">
+        
+        <!-- Canvas 画布：篮框与投篮区 -->
+        <div class="w-full lg:w-7/12 h-1/2 lg:h-full relative order-1 lg:order-2 bg-slate-950">
+            <canvas id="gameCanvas" class="w-full h-full cursor-crosshair"></canvas>
+            
+            <!-- 投篮提示覆层 -->
+            <div id="shootOverlay" class="absolute inset-0 bg-slate-950/60 backdrop-blur-sm flex flex-col items-center justify-center z-10 transition-opacity duration-300 opacity-100 pointer-events-auto">
+                <div class="text-center p-6 rounded-2xl glass-panel max-w-sm border-2 border-amber-500/40 glow-active">
+                    <div class="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center mx-auto mb-3 text-3xl">
+                        <i class="fa-solid fa-lock"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2" id="overlayTitle">答题解锁投篮</h3>
+                    <p class="text-slate-300 text-sm mb-4" id="overlayDesc">请先在答题板回答历史知识题！答对即可获得一次蓄力投篮机会。</p>
+                    <div id="shootHint" class="hidden text-amber-400 font-bold text-sm animate-bounce">
+                        <i class="fa-solid fa-hand-pointer mr-1"></i> 按住鼠标/手指拉动瞄准线，松开投篮！
+                    </div>
+                </div>
+            </div>
+
+            <!-- 投篮结果反馈 Popup -->
+            <div id="shotFeedback" class="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-0 transition-all duration-500 text-center z-20">
+                <span id="feedbackText" class="text-4xl md:text-5xl font-black drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)] px-6 py-2 rounded-2xl border">
+                    SWISH! +500
+                </span>
+            </div>
+        </div>
+
+        <!-- 左侧答题控制面板 -->
+        <div class="w-full lg:w-5/12 h-1/2 lg:h-full order-2 lg:order-1 glass-panel flex flex-col border-r border-slate-700/50 relative z-10">
+            
+            <!-- 题目进度条 -->
+            <div class="w-full bg-slate-800/80 h-2">
+                <div id="progressBar" class="bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500 h-full transition-all duration-300" style="width: 2.5%;"></div>
+            </div>
+
+            <!-- 问答容器 -->
+            <div class="flex-1 p-4 md:p-6 flex flex-col justify-between overflow-y-auto">
+                
+                <div>
+                    <!-- 分类标签与提示 -->
+                    <div class="flex items-center justify-between mb-3">
+                        <span id="categoryBadge" class="bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-full text-xs font-semibold">
+                            分类：州名由来
+                        </span>
+                        <span class="text-xs text-slate-400">
+                            正确率: <span id="accuracyText" class="text-emerald-400 font-bold">100%</span>
+                        </span>
+                    </div>
+
+                    <!-- 问题题目 -->
+                    <h2 id="questionText" class="text-lg md:text-xl font-bold text-white leading-relaxed mb-4">
+                        题目加载中...
+                    </h2>
+                </div>
+
+                <!-- 选项列表 -->
+                <div id="optionsContainer" class="space-y-2.5 my-2">
+                    <!-- 动态生成选项按钮 -->
+                </div>
+
+                <!-- 解释与下一题控制板 -->
+                <div id="explanationBox" class="mt-4 p-3 bg-slate-800/80 rounded-xl border border-slate-700 hidden">
+                    <div class="flex items-start gap-2">
+                        <i id="explainIcon" class="fa-solid fa-circle-info text-amber-400 mt-1"></i>
+                        <div>
+                            <p id="explainTitle" class="font-bold text-sm text-slate-200">答案解析：</p>
+                            <p id="explainText" class="text-xs md:text-sm text-slate-300 mt-0.5 leading-relaxed"></p>
+                        </div>
+                    </div>
+                    <button id="nextBtn" class="mt-3 w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black py-2 rounded-lg text-sm transition-all shadow-md flex items-center justify-center gap-2">
+                        <span>准备投篮 / 下一题</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 游戏结算模态框 -->
+    <div id="resultModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center z-50 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-slate-900 border-2 border-amber-500/50 rounded-3xl p-6 md:p-8 max-w-lg w-11/12 text-center shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-10 -right-10 w-40 h-40 bg-amber-500/10 rounded-full blur-2xl"></div>
+            
+            <div class="w-20 h-20 bg-amber-500/20 border-2 border-amber-500 text-amber-400 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl shadow-inner">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+
+            <h2 class="text-3xl font-black text-white mb-1">大获全胜！</h2>
+            <p class="text-slate-400 text-sm mb-6">你已完成 KSSR 六年级单元二全部 40 道挑战！</p>
+
+            <div class="grid grid-cols-2 gap-4 mb-6 text-left">
+                <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700">
+                    <p class="text-xs text-slate-400">总得分</p>
+                    <p id="finalScore" class="text-2xl font-black text-amber-400">0</p>
+                </div>
+                <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700">
+                    <p class="text-xs text-slate-400">答对题数</p>
+                    <p id="finalCorrect" class="text-2xl font-black text-emerald-400">0 / 40</p>
+                </div>
+                <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700">
+                    <p class="text-xs text-slate-400">投篮命中率</p>
+                    <p id="finalBasketAcc" class="text-2xl font-black text-sky-400">0%</p>
+                </div>
+                <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700">
+                    <p class="text-xs text-slate-400">最高连胜</p>
+                    <p id="finalMaxStreak" class="text-2xl font-black text-orange-400">0</p>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="restartGame()" class="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black py-3 rounded-xl transition shadow-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>再玩一次</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 逻辑与游戏代码 -->
+    <script>
+        // --- 40道 KSSR 六年级历史 单元二 (我国的州属) 精选题库 ---
+        const questionBank = [
+            // 一、 州名由来 (1-15)
+            {
+                id: 1,
+                category: "州名由来",
+                question: "根据传说，玻璃市（Perlis）的名称来源可能与以下哪项有关？",
+                options: ["暹罗文“prow-lowy”（漂流的椰子）", "葡萄牙文“Porto”", "梵文“Kedaram”", "阿拉伯文“Jauhar”"],
+                answer: 0,
+                explain: "玻璃市（Perlis）名称相传源自暹罗文“prow-lowy”，意为漂流的椰子；另一说法是源自马来文“peroleh”（获得）。"
+            },
+            {
+                id: 2,
+                category: "州名由来",
+                question: "吉打州（Kedah）的名称由来主要与什么有关？",
+                options: ["银色的鱼类", "捕抓大象的陷阱（Kheddah）或历史传说", "槟榔树", "巨大的红树林"],
+                answer: 1,
+                explain: "吉打（Kedah）名称源于捕抓大象的陷阱“Kheddah”或古老的暹罗/阿拉伯交易传说。"
+            },
+            {
+                id: 3,
+                category: "州名由来",
+                question: "槟城（Pulau Pinang）的名字由来是因为早期岛上生长着许多什么植物？",
+                options: ["椰树", "橡胶树", "槟榔树", "马六甲树"],
+                answer: 2,
+                explain: "槟城因早期岛上遍布槟榔树（Pohon Pinang）而得名。"
+            },
+            {
+                id: 4,
+                category: "州名由来",
+                question: "霹雳州（Perak）的名称被认为与以下哪种环境特征或物产有关？",
+                options: ["红色的泥土", "河中银白色的鱼或锡米发出的银色光泽", "黄金矿产", "绿色森林"],
+                answer: 1,
+                explain: "霹雳（Perak）在马来语中意为“银色”，与河里银白色的鱼类光泽或蕴藏丰富的锡米色彩有关。"
+            },
+            {
+                id: 5,
+                category: "州名由来",
+                question: "雪兰莪州（Selangor）的名称源自Selangau树或Selangor河，它也与哪种昆虫的名称相似？",
+                options: ["蝴蝶（Kupu-kupu）", "萤火虫（Kelip-kelip）", "苍蝇/牛蝇（Lalat/Selangau）", "蜜蜂（Lebah）"],
+                answer: 2,
+                explain: "雪兰莪（Selangor）名称来源说法之一是来自于Selangau（一种大型苍蝇/牛蝇）或雪兰莪河。"
+            },
+            {
+                id: 6,
+                category: "州名由来",
+                question: "森美兰（Negeri Sembilan）的名字意为“九个州”，是因为它最早由什么合并而成？",
+                options: ["九个渔村", "九个小州（Luak）", "九条主要河流", "九座山峰"],
+                answer: 1,
+                explain: "森美兰（Negeri Sembilan）由早期来自米南加保人的九个小区域（Luak）结合而成。"
+            },
+            {
+                id: 7,
+                category: "州名由来",
+                question: "马六甲（Melaka）的名称除了与阿拉伯商人聚集有关外，还因为拜里米苏拉在什么树下休息？",
+                options: ["橡皮树", "马六甲树（Pokok Melaka）", "榴莲树", "红树"],
+                answer: 1,
+                explain: "拜里米苏拉建立马六甲时，因目睹鼠鹿踢狗的奇景，便以当时依靠休息的马六甲树（Pokok Melaka）为州命名。"
+            },
+            {
+                id: 8,
+                category: "州名由来",
+                question: "柔佛州（Johor）的名称来源于阿拉伯语“Jauhar”，其字面意思是：",
+                options: ["宝石 / 珠宝", "黄金", "胜利之城", "红色的港口"],
+                answer: 0,
+                explain: "柔佛（Johor）源自阿拉伯文“Jauhar”，意为“珠宝”或“宝石”，反映了当时贸易的繁荣。"
+            },
+            {
+                id: 9,
+                category: "州名由来",
+                question: "彭亨州（Pahang）的名字由来据说是源自当地的一棵大树，这棵树叫作：",
+                options: ["马坑树（Pokok Mahang）", "樟脑树", "柚木树", "龙脑香树"],
+                answer: 0,
+                explain: "彭亨（Pahang）名称由来相传源自直落安森的一棵巨大的“马坑树”（Pokok Mahang）。"
+            },
+            {
+                id: 10,
+                category: "州名由来",
+                question: "登嘉楼州（Terengganu）的名字传统传说与以下哪项有关？",
+                options: ["明亮的彩虹（Taring Anu）或大象牙", "飞翔的雄鹰", "巨大的火山", "黑色沙滩"],
+                answer: 0,
+                explain: "登嘉楼名称由来传说与“Taring Anu”（某种大象牙）或“Terang taring”（明亮的牙齿/彩虹光芒）有关。"
+            },
+            {
+                id: 11,
+                category: "州名由来",
+                question: "吉兰丹州（Kelantan）名称的由来，普遍认为与哪种天然产物或植物有关？",
+                options: ["Kilat（闪电）或 Biji Kelam（白树/椰子树）", "香蕉", "胡椒", "胡木"],
+                answer: 0,
+                explain: "吉兰丹（Kelantan）名称可能源自“Kilatan”（闪电的光芒）或“Gelam Hutan”（白树）等植物名称。"
+            },
+            {
+                id: 12,
+                category: "州名由来",
+                question: "砂拉越（Sarawak）的名字来源主要与哪条河流或哪种矿物有关？",
+                options: ["砂拉越河（Sungai Sarawak）或锑矿（Serawa）", "铜矿", "铁矿", "金矿"],
+                answer: 0,
+                explain: "砂拉越（Sarawak）得名于砂拉越河，或当地蕴藏的“锑矿”（Batang Sarawak/Serawa）。"
+            },
+            {
+                id: 13,
+                category: "州名由来",
+                question: "沙巴州（Sabah）的名称源自当地广泛种植的一种特产香蕉，称为：",
+                options: ["Pisang Emas", "Pisang Raja", "Pisang Sabah（比萨沙巴香蕉）", "Pisang Berangan"],
+                answer: 2,
+                explain: "沙巴（Sabah）名称源自当地沿海居民种植的一种被称为“Pisang Sabah”的香蕉树。"
+            },
+            {
+                id: 14,
+                category: "联邦直辖区",
+                question: "吉隆坡（Kuala Lumpur）之所以被称为“Kuala Lumpur”，是因为当地最初是怎样的地理环境？",
+                options: ["高山与峡谷", "两条河流交汇且泥巴众多的采锡矿泥口", "深海港口", "沙漠绿洲"],
+                answer: 1,
+                explain: "吉隆坡（Kuala Lumpur）意为“泥泞的河口”，因处于鹅麦河与巴生河交汇处且过去开采锡矿泥沙多而得名。"
+            },
+            {
+                id: 15,
+                category: "联邦直辖区",
+                question: "布城（Putrajaya）作为联邦行政中心，其名称是为了纪念哪位国父？",
+                options: ["敦拉扎克", "东姑阿都拉曼（Tunku Abdul Rahman Putra Al-Haj）", "敦胡先翁", "敦马哈迪"],
+                answer: 1,
+                explain: "布城（Putrajaya）是以马来西亚第一任首相东姑阿都拉曼 Putra Al-Haj 的名字命名，以表彰其贡献。"
+            },
+
+            // 二、 州统治者衔称 (16-25)
+            {
+                id: 16,
+                category: "州统治者衔称",
+                question: "在马来西亚，哪一个州属的最高统治者专属称谓是“拉惹”（Raja）？",
+                options: ["玻璃市州（Perlis）", "吉打州（Kedah）", "柔佛州（Johor）", "森美兰州（Negeri Sembilan）"],
+                answer: 0,
+                explain: "全国只有玻璃市州（Perlis）的最高统治者称为“拉惹”（Raja）。"
+            },
+            {
+                id: 17,
+                category: "州统治者衔称",
+                question: "森美兰州（Negeri Sembilan）最高统治者的专属称号是什么？",
+                options: ["苏丹（Sultan）", "拉惹（Raja）", "最高统治者（Yang di-Pertuan Besar）", "州元首（Yang di-Pertua Negeri）"],
+                answer: 2,
+                explain: "森美兰州的最高统治者称号特别，称为“最高统治者”（Yang di-Pertuan Besar）。"
+            },
+            {
+                id: 18,
+                category: "州统治者衔称",
+                question: "以下哪一组州属的最高统治者统一被称为“苏丹”（Sultan）？",
+                options: ["玻璃市、吉打、彭亨", "雪兰莪、柔佛、霹雳", "槟城、马六甲、沙巴", "森美兰、砂拉越、吉兰丹"],
+                answer: 1,
+                explain: "雪兰莪、柔佛、霹雳、吉打、吉兰丹、登嘉楼、彭亨等7个拥有君主制的州统治者均称为“苏丹”。"
+            },
+            {
+                id: 19,
+                category: "州统治者衔称",
+                question: "没有世袭君主体制的州属（如槟城、马六甲、砂拉越、沙巴），其最高元首被称为：",
+                options: ["苏丹", "州元首（Yang di-Pertua Negeri）", "拉惹", "首相"],
+                answer: 1,
+                explain: "没有世袭统治者的4个州属（槟城、马六甲、砂拉越、沙巴）由最高元首任命的“州元首”作为代表。"
+            },
+            {
+                id: 20,
+                category: "州统治者衔称",
+                question: "马来西亚由多少个州统治者组成统治者会议以轮流选举国家元首？",
+                options: ["13个", "9个", "11个", "7个"],
+                answer: 1,
+                explain: "马来西亚拥有君主体制的 9 个州属统治者（7位苏丹、1位拉惹、1位严端）组成统治者会议轮流选出最高统治者（国家元首）。"
+            },
+            {
+                id: 21,
+                category: "州统治者衔称",
+                question: "吉打州（Kedah）最高统治者的称谓是：",
+                options: ["吉打拉惹", "吉打苏丹（Sultan Kedah）", "吉打州元首", "吉打严端"],
+                answer: 1,
+                explain: "吉打州最高统治者的称号是“吉打苏丹”（Sultan Kedah）。"
+            },
+            {
+                id: 22,
+                category: "州统治者衔称",
+                question: "霹雳州（Perak）的最高统治者称号为：",
+                options: ["霹雳拉惹", "霹雳苏丹（Sultan Perak）", "霹雳公爵", "霹雳州元首"],
+                answer: 1,
+                explain: "霹雳州最高统治者称号为“霹雳苏丹”（Sultan Perak）。"
+            },
+            {
+                id: 23,
+                category: "州统治者衔称",
+                question: "登嘉楼州（Terengganu）最高统治者的正确称号是：",
+                options: ["登嘉楼苏丹（Sultan Terengganu）", "登嘉楼拉惹", "登嘉楼总督", "登嘉楼严端"],
+                answer: 0,
+                explain: "登嘉楼州最高统治者被称为“登嘉楼苏丹”。"
+            },
+            {
+                id: 24,
+                category: "州统治者衔称",
+                question: "纳闽（Labuan）作为联邦直辖区，其名称由来意为：",
+                options: ["珍珠岛", "船只停泊的港口（Pelabuhan）", "高山", "绿洲"],
+                answer: 1,
+                explain: "纳闽（Labuan）源自“Labuhan”或“Pelabuhan”，意为船只庇护与停泊的良港。"
+            },
+            {
+                id: 25,
+                category: "州统治者衔称",
+                question: "在森美兰州，选择最高统治者（Yang di-Pertuan Besar）是由谁共同选出的？",
+                options: ["全体选民", "四大酋长（Undang Yang Empat）", "内阁成员", "国会议员"],
+                answer: 1,
+                explain: "森美兰根据独特的米南加保传统，最高统治者由四大地方酋长（Undang Yang Empat）选出。"
+            },
+
+            // 三、 首府与皇城 (26-33)
+            {
+                id: 26,
+                category: "首府与皇城",
+                question: "雪兰莪州（Selangor）的行政首府是莎阿南（Shah Alam），那么它的皇城（Bandar Diraja）是哪里？",
+                options: ["加影（Kajang）", "巴生（Klang）", "八打灵再也（Petaling Jaya）", "瓜拉雪兰莪"],
+                answer: 1,
+                explain: "雪兰莪州的首府是莎阿南，而皇城位于巴生（Klang）。"
+            },
+            {
+                id: 27,
+                category: "首府与皇城",
+                question: "吉打州（Kedah）的首府是亚罗士打（Alor Setar），它的皇城位于：",
+                options: ["双溪大年", "浮罗交怡", "安南武吉（Anak Bukit）", "居林"],
+                answer: 2,
+                explain: "吉打州的皇城位于安南武吉（Anak Bukit），苏丹王宫即建于此。"
+            },
+            {
+                id: 28,
+                category: "首府与皇城",
+                question: "霹雳州（Perak）的首府是怡保（Ipoh），它的皇城是以下哪座历史名城？",
+                options: ["太平（Taiping）", "江沙（Kuala Kangsar）", "红土坎（Lumut）", "安顺（Teluk Intan）"],
+                answer: 1,
+                explain: "霹雳州的皇城是江沙（Kuala Kangsar），标志性建筑有伊斯干达利亚王宫。"
+            },
+            {
+                id: 29,
+                category: "首府与皇城",
+                question: "柔佛州（Johor）的首府同时也是其皇城的城市是：",
+                options: ["麻坡（Muar）", "新山（Johor Bahru）", "居銮（Kluang）", "峇株巴辖（Batu Pahat）"],
+                answer: 1,
+                explain: "柔佛州的首府是新山（Johor Bahru），麻坡也被赋予“皇城”（Bandar Diraja Muar）称号，但政治行政皇城主要在新山。"
+            },
+            {
+                id: 30,
+                category: "首府与皇城",
+                question: "彭亨州（Pahang）的首府是关丹（Kuantan），它的皇城位于：",
+                options: ["文冬", "北根（Pekan）", "金马仑高原", "劳勿"],
+                answer: 1,
+                explain: "彭亨州的皇城是北根（Pekan）。"
+            },
+            {
+                id: 31,
+                category: "首府与皇城",
+                question: "玻璃市州（Perlis）的首府是加央（Kangar），其皇城则是：",
+                options: ["亚娄（Arau）", "巴东besar", "樟仑", "居林"],
+                answer: 0,
+                explain: "玻璃市州的皇城位于亚娄（Arau），拉惹王宫建于此。"
+            },
+            {
+                id: 32,
+                category: "首府与皇城",
+                question: "吉兰丹州（Kelantan）的首府和皇城均设在：",
+                options: ["道北（Tumpat）", "哥打峇鲁（Kota Bharu）", "巴西马（Pasir Mas）", "瓜拉吉赖"],
+                answer: 1,
+                explain: "吉兰丹州的首府与皇城均为哥打峇鲁（Kota Bharu）。"
+            },
+            {
+                id: 33,
+                category: "首府与皇城",
+                question: "森美兰州（Negeri Sembilan）的首府是芙蓉（Seremban），其皇城是：",
+                options: ["波德申（Port Dickson）", "神安池（Sri Menanti）", "淡边（Tampin）", "日叻务"],
+                answer: 1,
+                explain: "森美兰州的皇城是神安池（Sri Menanti），那里保存着著名的木制旧王宫。"
+            },
+
+            // 四、 州象征与综合 (34-40)
+            {
+                id: 34,
+                category: "州象征与特征",
+                question: "各州的“州象征”通常包括以下哪些要素，用以体现各州的独立主权与文化特色？",
+                options: ["州旗、州歌、州徽", "州美食、州花、州树", "州首长、州地图", "以上皆是"],
+                answer: 0,
+                explain: "各州属法定官方标志象征主要包括：州旗（Bendera）、州歌（Lagu Negeri）和州徽（Jata Negeri）。"
+            },
+            {
+                id: 35,
+                category: "州象征与特征",
+                question: "砂拉越州（Sarawak）的首府是哪一座城市？",
+                options: ["美里（Miri）", "诗巫（Sibu）", "古晋（Kuching）", "民都鲁（Bintulu）"],
+                answer: 2,
+                explain: "砂拉越州的首府是古晋（Kuching），意为“猫城”。"
+            },
+            {
+                id: 36,
+                category: "州象征与特征",
+                question: "沙巴州（Sabah）的首府是哪一座城市？",
+                options: ["山打根（Sandakan）", "亚庇（Kota Kinabalu）", "斗湖（Tawau）", "拿笃"],
+                answer: 1,
+                explain: "沙巴州的首府是亚庇（Kota Kinabalu），毗邻著名的京那巴鲁山。"
+            },
+            {
+                id: 37,
+                category: "州象征与特征",
+                question: "槟城（Pulau Pinang）的首府是哪座世界文化遗产城市？",
+                options: ["北海（Butterworth）", "乔治市（George Town）", "大山脚（Bukit Mertajam）", "峇六拜"],
+                answer: 1,
+                explain: "槟城州的首府是富有历史建筑的乔治市（George Town）。"
+            },
+            {
+                id: 38,
+                category: "州象征与特征",
+                question: "马六甲州（Melaka）的首府是哪座历史悠久的城市？",
+                options: ["野新（Jasin）", "马六甲市（Bandaraya Melaka）", "亚罗牙也", "爱极乐"],
+                answer: 1,
+                explain: "马六甲州的首府是马六甲市（Bandaraya Melaka）。"
+            },
+            {
+                id: 39,
+                category: "州象征与特征",
+                question: "登嘉楼州（Terengganu）的首府是：",
+                options: ["甘马挽（Kemaman）", "瓜拉登嘉楼（Kuala Terengganu）", "龙运（Dungun）", "龙运港"],
+                answer: 1,
+                explain: "登嘉楼州的首府是瓜拉登嘉楼（Kuala Terengganu）。"
+            },
+            {
+                id: 40,
+                category: "州象征与特征",
+                question: "马来西亚目前一共有多少个州属（Negeri）和多少个联邦直辖区（Wilayah Persekutuan）？",
+                options: ["13个州属，3个联邦直辖区", "14个州属，2个联邦直辖区", "12个州属，4个联邦直辖区", "15个州属，1个联邦直辖区"],
+                answer: 0,
+                explain: "马来西亚共有13个州属（9个有君主制、4个无君主制）及3个联邦直辖区（吉隆坡、布城、纳闽）。"
+            }
+        ];
+
+        // --- 游戏全局状态 ---
+        let currentIndex = 0;
+        let score = 0;
+        let streak = 0;
+        let maxStreak = 0;
+        let correctAnswers = 0;
+        let canShoot = false;
+        let totalShots = 0;
+        let successfulShots = 0;
+
+        // --- Canvas 投篮物理系统变量 ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        let ball = { x: 0, y: 0, vx: 0, vy: 0, radius: 18, isDragging: false, isMoving: false, scored: false };
+        let dragStart = { x: 0, y: 0 };
+        let dragCurrent = { x: 0, y: 0 };
+        
+        // 篮框物理对象位置 (动态适应分辨率)
+        let hoop = { x: 0, y: 0, radius: 32, rimThickness: 6, backboardWidth: 12, backboardHeight: 120 };
+        const gravity = 0.45;
+        const friction = 0.985;
+        const bounce = 0.72;
+
+        // 调整 Canvas 尺寸
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            width = canvas.width = rect.width;
+            height = canvas.height = rect.height;
+            
+            // 计算篮框位置 (靠右偏上)
+            hoop.x = width * 0.75;
+            hoop.y = height * 0.35;
+            
+            resetBallPosition();
+        }
+
+        // 将篮球复位至投篮点 (靠左下方)
+        function resetBallPosition() {
+            ball.x = width * 0.25;
+            ball.y = height * 0.75;
+            ball.vx = 0;
+            ball.vy = 0;
+            ball.isMoving = false;
+            ball.isDragging = false;
+            ball.scored = false;
+        }
+
+        // --- 渲染逻辑 ---
+        function render() {
+            ctx.clearRect(0, 0, width, height);
+
+            // 1. 绘制背景木地板线与聚光灯效果
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, width, height);
+
+            // 聚光灯
+            const grad = ctx.createRadialGradient(width*0.5, height*0.3, 50, width*0.5, height*0.3, width*0.8);
+            grad.addColorStop(0, 'rgba(59, 130, 246, 0.15)');
+            grad.addColorStop(1, 'rgba(15, 23, 42, 0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, width, height);
+
+            // 2. 绘制篮板与篮框 (后层)
+            // 篮板柱
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 10;
+            ctx.beginPath();
+            ctx.moveTo(hoop.x + 35, height);
+            ctx.lineTo(hoop.x + 35, hoop.y - 40);
+            ctx.stroke();
+
+            // 篮板
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 4;
+            ctx.fillRect(hoop.x + 30, hoop.y - 70, hoop.backboardWidth, hoop.backboardHeight);
+            ctx.strokeRect(hoop.x + 30, hoop.y - 70, hoop.backboardWidth, hoop.backboardHeight);
+            // 篮板小框
+            ctx.strokeStyle = '#ef4444';
+            ctx.strokeRect(hoop.x + 30, hoop.y - 20, 8, 40);
+
+            // 篮网 (后半部分)
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for(let i = -hoop.radius + 5; i <= hoop.radius - 5; i += 10) {
+                ctx.moveTo(hoop.x + i, hoop.y);
+                ctx.lineTo(hoop.x + i * 0.5, hoop.y + 45);
+            }
+            ctx.stroke();
+
+            // 篮框前沿圈 (Rim)
+            ctx.strokeStyle = '#f97316'; // 橙色篮框
+            ctx.lineWidth = hoop.rimThickness;
+            ctx.beginPath();
+            ctx.arc(hoop.x, hoop.y, hoop.radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // 3. 拖拽瞄准虚线
+            if (ball.isDragging && canShoot) {
+                const dx = dragStart.x - dragCurrent.x;
+                const dy = dragStart.y - dragCurrent.y;
+                
+                ctx.strokeStyle = '#f59e0b';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([6, 6]);
+                ctx.beginPath();
+                ctx.moveTo(ball.x, ball.y);
+                
+                // 预估轨迹抛物线
+                let simX = ball.x;
+                let simY = ball.y;
+                let simVx = dx * 0.15;
+                let simVy = dy * 0.15;
+                for(let t = 0; t < 25; t++) {
+                    simX += simVx;
+                    simY += simVy;
+                    simVy += gravity;
+                    ctx.lineTo(simX, simY);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // 拖拽力度圈
+                ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+                ctx.beginPath();
+                ctx.arc(ball.x, ball.y, Math.min(Math.hypot(dx, dy), 120), 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // 4. 绘制篮球
+            ctx.save();
+            ctx.translate(ball.x, ball.y);
+            
+            // 篮球阴影
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(0, ball.radius + 15, ball.radius * 0.8, 6, 0, 0, Math.PI*2);
+            ctx.fill();
+
+            // 篮球本体
+            const ballGrad = ctx.createRadialGradient(-5, -5, 2, 0, 0, ball.radius);
+            ballGrad.addColorStop(0, '#fb923c');
+            ballGrad.addColorStop(0.8, '#ea580c');
+            ballGrad.addColorStop(1, '#9a3412');
+            ctx.fillStyle = ballGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 篮球黑色纹路
+            ctx.strokeStyle = '#431407';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, ball.radius, -Math.PI*0.4, Math.PI*0.4);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-ball.radius, 0);
+            ctx.lineTo(ball.radius, 0);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, -ball.radius);
+            ctx.lineTo(0, ball.radius);
+            ctx.stroke();
+
+            ctx.restore();
+
+            // 5. 篮网 (前半部分盖在球上，打造穿心效果)
+            if (ball.scored) {
+                ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for(let i = -hoop.radius + 5; i <= hoop.radius - 5; i += 8) {
+                    ctx.moveTo(hoop.x + i, hoop.y);
+                    ctx.lineTo(hoop.x + i * 0.3, hoop.y + 50);
+                }
+                ctx.stroke();
+            }
+        }
+
+        // --- 物理运动与碰撞判定循环 ---
+        function updatePhysics() {
+            if (ball.isMoving) {
+                ball.x += ball.vx;
+                ball.y += ball.vy;
+                ball.vy += gravity;
+                ball.vx *= friction;
+                ball.vy *= friction;
+
+                // 篮板碰撞 (后方竖直板)
+                const bbX = hoop.x + 30;
+                if (ball.x + ball.radius > bbX && ball.x - ball.radius < bbX + hoop.backboardWidth &&
+                    ball.y > hoop.y - 70 && ball.y < hoop.y + 50) {
+                    ball.vx = -ball.vx * bounce;
+                    ball.x = bbX - ball.radius;
+                }
+
+                // 篮框前沿圈碰撞 (Rim Left & Right)
+                const rimLeft = { x: hoop.x - hoop.radius, y: hoop.y };
+                const rimRight = { x: hoop.x + hoop.radius, y: hoop.y };
+
+                [rimLeft, rimRight].forEach(rim => {
+                    const dist = Math.hypot(ball.x - rim.x, ball.y - rim.y);
+                    if (dist < ball.radius + hoop.rimThickness / 2) {
+                        // 简单弹性反弹
+                        const angle = Math.atan2(ball.y - rim.y, ball.x - rim.x);
+                        const speed = Math.hypot(ball.vx, ball.vy) * bounce;
+                        ball.vx = Math.cos(angle) * speed;
+                        ball.vy = Math.sin(angle) * speed;
+                    }
+                });
+
+                // 进球判定: 球从上方穿过篮框平面
+                if (!ball.scored && ball.vy > 0 && 
+                    Math.abs(ball.x - hoop.x) < hoop.radius - 8 &&
+                    Math.abs(ball.y - hoop.y) < 12) {
+                    
+                    ball.scored = true;
+                    onScoreBasket();
+                }
+
+                // 触地或出界重置
+                if (ball.y > height + 50 || ball.x > width + 50 || ball.x < -50) {
+                    ball.isMoving = false;
+                    if (!ball.scored) {
+                        showFeedback("MISS!", "text-gray-400", "border-gray-500");
+                    }
+                    setTimeout(() => {
+                        resetBallPosition();
+                        disableShootingMode();
+                        loadNextQuestion();
+                    }, 1200);
+                }
+            }
+
+            render();
+            requestAnimationFrame(updatePhysics);
+        }
+
+        // --- 进球得分触发机制 ---
+        function onScoreBasket() {
+            successfulShots++;
+            const points = 500 + streak * 50;
+            score += points;
+            document.getElementById('scoreText').innerText = score;
+
+            // 触发全屏彩带特效
+            confetti({
+                particleCount: 80,
+                spread: 70,
+                origin: { y: 0.4 }
+            });
+
+            showFeedback(`SWISH! +${points}`, "text-amber-400", "border-amber-500");
+        }
+
+        // 显示浮动文字反馈
+        function showFeedback(text, colorClass, borderClass) {
+            const el = document.getElementById('shotFeedback');
+            const txt = document.getElementById('feedbackText');
+            txt.innerText = text;
+            txt.className = `text-4xl md:text-5xl font-black drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)] px-6 py-2 rounded-2xl border ${colorClass} ${borderClass} bg-slate-900/90`;
+            
+            el.style.opacity = '1';
+            el.style.transform = 'translate(-50%, -80%) scale(1.1)';
+            
+            setTimeout(() => {
+                el.style.opacity = '0';
+                el.style.transform = 'translate(-50%, -50%) scale(1.0)';
+            }, 1000);
+        }
+
+        // --- 触摸与鼠标交互处理 ---
+        function handleInputStart(clientX, clientY) {
+            if (!canShoot || ball.isMoving) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+
+            // 点击篮球附近启动拖拽
+            if (Math.hypot(x - ball.x, y - ball.y) < ball.radius * 2.5) {
+                ball.isDragging = true;
+                dragStart = { x: ball.x, y: ball.y };
+                dragCurrent = { x, y };
+            }
+        }
+
+        function handleInputMove(clientX, clientY) {
+            if (!ball.isDragging) return;
+            const rect = canvas.getBoundingClientRect();
+            dragCurrent = {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function handleInputEnd() {
+            if (!ball.isDragging) return;
+            ball.isDragging = false;
+
+            const dx = dragStart.x - dragCurrent.x;
+            const dy = dragStart.y - dragCurrent.y;
+            
+            // 设定最小发射力度阈值
+            if (Math.hypot(dx, dy) > 20) {
+                totalShots++;
+                ball.isMoving = true;
+                ball.vx = dx * 0.15;
+                ball.vy = dy * 0.15;
+            }
+        }
+
+        // 事件监听绑定
+        canvas.addEventListener('mousedown', e => handleInputStart(e.clientX, e.clientY));
+        window.addEventListener('mousemove', e => handleInputMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', handleInputEnd);
+
+        canvas.addEventListener('touchstart', e => {
+            if (e.touches.length > 0) handleInputStart(e.touches[0].clientX, e.touches[0].clientY);
+        });
+        window.addEventListener('touchmove', e => {
+            if (e.touches.length > 0) handleInputMove(e.touches[0].clientX, e.touches[0].clientY);
+        });
+        window.addEventListener('touchend', handleInputEnd);
+
+        // --- UI & 题目控制逻辑 ---
+
+        function renderQuestion() {
+            const q = questionBank[currentIndex];
+            
+            // 更新顶部与面板进度
+            document.getElementById('progressText').innerText = `${currentIndex + 1} / ${questionBank.length}`;
+            document.getElementById('progressBar').style.width = `${((currentIndex + 1) / questionBank.length) * 100}%`;
+            document.getElementById('categoryBadge').innerText = `分类：${q.category}`;
+            document.getElementById('questionText').innerText = `${q.id}. ${q.question}`;
+
+            // 重置解释面板与按键状态
+            document.getElementById('explanationBox').classList.add('hidden');
+            
+            // 渲染选项
+            const container = document.getElementById('optionsContainer');
+            container.innerHTML = '';
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `w-full text-left p-3.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between border glass-card hover:bg-slate-700/80 hover:border-slate-500 text-slate-200`;
+                btn.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="w-6 h-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-xs font-bold text-slate-300">${String.fromCharCode(65 + idx)}</span>
+                        <span>${opt}</span>
+                    </div>
+                    <i class="fa-regular fa-circle text-slate-500 status-icon"></i>
+                `;
+                btn.onclick = () => selectOption(idx);
+                container.appendChild(btn);
+            });
+        }
+
+        function selectOption(selectedIdx) {
+            const q = questionBank[currentIndex];
+            const options = document.querySelectorAll('#optionsContainer button');
+            
+            // 禁用所有按键
+            options.forEach(btn => btn.disabled = true);
+
+            const isCorrect = selectedIdx === q.answer;
+
+            if (isCorrect) {
+                correctAnswers++;
+                streak++;
+                if (streak > maxStreak) maxStreak = streak;
+                score += 100 + streak * 20;
+
+                options[selectedIdx].className = 'w-full text-left p-3.5 rounded-xl text-sm font-bold transition-all flex items-center justify-between border bg-emerald-950/80 border-emerald-500 text-emerald-200 shadow-lg';
+                options[selectedIdx].querySelector('.status-icon').className = 'fa-solid fa-circle-check text-emerald-400';
+
+                document.getElementById('explainTitle').innerText = "回答正确！解锁一次投篮机会！";
+                document.getElementById('explainTitle').className = "font-bold text-sm text-emerald-400";
+                document.getElementById('explainIcon').className = "fa-solid fa-circle-check text-emerald-400 mt-1";
+
+                enableShootingMode();
+            } else {
+                streak = 0;
+                options[selectedIdx].className = 'w-full text-left p-3.5 rounded-xl text-sm font-bold transition-all flex items-center justify-between border bg-rose-950/80 border-rose-500 text-rose-200';
+                options[selectedIdx].querySelector('.status-icon').className = 'fa-solid fa-circle-xmark text-rose-400';
+
+                // 高亮正确答案
+                options[q.answer].className = 'w-full text-left p-3.5 rounded-xl text-sm font-bold transition-all flex items-center justify-between border bg-emerald-950/40 border-emerald-500/60 text-emerald-300';
+                
+                document.getElementById('explainTitle').innerText = "回答错误！遗憾错过投篮机会。";
+                document.getElementById('explainTitle').className = "font-bold text-sm text-rose-400";
+                document.getElementById('explainIcon').className = "fa-solid fa-circle-xmark text-rose-400 mt-1";
+            }
+
+            // 更新顶部得分
+            document.getElementById('scoreText').innerText = score;
+            document.getElementById('streakText').innerText = streak;
+            document.getElementById('accuracyText').innerText = `${Math.round((correctAnswers / (currentIndex + 1)) * 100)}%`;
+
+            // 展示知识解析
+            document.getElementById('explainText').innerText = q.explain;
+            document.getElementById('explanationBox').classList.remove('hidden');
+        }
+
+        // 启用投篮模式
+        function enableShootingMode() {
+            canShoot = true;
+            const overlay = document.getElementById('shootOverlay');
+            document.getElementById('overlayTitle').innerText = "准许投篮！";
+            document.getElementById('overlayDesc').innerText = "按住右侧篮球拖拽后松开，把球投进篮框吧！";
+            document.getElementById('shootHint').classList.remove('hidden');
+            
+            overlay.classList.remove('pointer-events-auto', 'bg-slate-950/60');
+            overlay.classList.add('pointer-events-none', 'opacity-40');
+        }
+
+        // 禁用投篮模式
+        function disableShootingMode() {
+            canShoot = false;
+            const overlay = document.getElementById('shootOverlay');
+            document.getElementById('overlayTitle').innerText = "答题解锁投篮";
+            document.getElementById('overlayDesc').innerText = "请先在答题板回答历史知识题！答对即可获得一次蓄力投篮机会。";
+            document.getElementById('shootHint').classList.add('hidden');
+
+            overlay.classList.add('pointer-events-auto', 'bg-slate-950/60');
+            overlay.classList.remove('pointer-events-none', 'opacity-40');
+        }
+
+        // 加载下一题
+        function loadNextQuestion() {
+            currentIndex++;
+            if (currentIndex < questionBank.length) {
+                renderQuestion();
+            } else {
+                endGame();
+            }
+        }
+
+        // 点击“准备投篮 / 下一题”按钮
+        document.getElementById('nextBtn').onclick = () => {
+            if (!canShoot) {
+                // 如果没答对不能投篮，直接切下一题
+                loadNextQuestion();
+            } else {
+                // 提醒玩家可以去右侧投篮，或者直接跳过投篮
+                const confirmSkip = confirm("你当前拥有投篮机会！确定放弃投篮直接进入下一题吗？");
+                if (confirmSkip) {
+                    disableShootingMode();
+                    loadNextQuestion();
+                }
+            }
+        };
+
+        // 结束游戏模态框
+        function endGame() {
+            const modal = document.getElementById('resultModal');
+            document.getElementById('finalScore').innerText = score;
+            document.getElementById('finalCorrect').innerText = `${correctAnswers} / ${questionBank.length}`;
+            document.getElementById('finalMaxStreak').innerText = maxStreak;
+            
+            const basketAcc = totalShots > 0 ? Math.round((successfulShots / totalShots) * 100) : 0;
+            document.getElementById('finalBasketAcc').innerText = `${basketAcc}%`;
+
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('opacity-0'), 50);
+
+            confetti({
+                particleCount: 150,
+                spread: 100,
+                origin: { y: 0.5 }
+            });
+        }
+
+        // 重新开始游戏
+        function restartGame() {
+            currentIndex = 0;
+            score = 0;
+            streak = 0;
+            maxStreak = 0;
+            correctAnswers = 0;
+            totalShots = 0;
+            successfulShots = 0;
+            
+            document.getElementById('scoreText').innerText = '0';
+            document.getElementById('streakText').innerText = '0';
+            
+            const modal = document.getElementById('resultModal');
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+
+            resetBallPosition();
+            disableShootingMode();
+            renderQuestion();
+        }
+
+        // 窗口初始化
+        window.onload = () => {
+            resizeCanvas();
+            renderQuestion();
+            requestAnimationFrame(updatePhysics);
+        };
+
+        window.addEventListener('resize', resizeCanvas);
+    </script>
+</body>
+</html>
